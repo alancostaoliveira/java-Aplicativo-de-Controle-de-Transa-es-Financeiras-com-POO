@@ -91,8 +91,8 @@ Além dos requisitos básicos, foram aplicadas as seguintes melhorias técnicas:
 - **Tratamento de Erros**: Bloco `try-catch` no menu principal para capturar erros de negócio separadamente de erros inesperados.
 
 ## 👨+💻 Autor
-**Cristiano**
-[GitHub](https://github.com/cristiano)
+**Alan Costa de Oliveira**
+[GitHub](https://github.com/alancostaoliveira) | [LinkedIn](https://www.linkedin.com/in/alancostaoliveira)
 
 ---
 ✨ Desafio concluído como parte da formação em Java da DIO.
