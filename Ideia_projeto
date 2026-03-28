@@ -1,0 +1,361 @@
+Visão Geral do Projeto
+Você criará um Sistema Bancário em Java executado via console. O foco é aplicar os pilares da Programação Orientada a Objetos (POO) de forma prática e bem documentada.
+
+Estrutura de Pacotes (Sugestão)
+br.com.dio.desafio.model: Classes de modelo (Conta, Cliente, etc.)
+
+br.com.dio.desafio.enums: Enumeradores (TipoConta, TipoInvestimento)
+
+br.com.dio.desafio.repository: Simulação de banco de dados em memória
+
+br.com.dio.desafio.service: Regras de negócio (transações, cálculos)
+
+br.com.dio.desafio.menu: Interface com o usuário via console
+
+br.com.dio.desafio.exception: Exceções personalizadas
+
+1. Código Fonte (Java)
+Aqui estão as principais classes para construir a base do sistema.
+
+Cliente.java
+java
+package br.com.dio.desafio.model;
+
+import lombok.Data;
+import java.util.ArrayList;
+import java.util.List;
+
+@Data
+public class Cliente {
+    private String nome;
+    private String cpf;
+    private List<Conta> contas = new ArrayList<>();
+
+    public Cliente(String nome, String cpf) {
+        this.nome = nome;
+        this.cpf = cpf;
+    }
+}
+Conta.java (Classe Abstrata)
+java
+package br.com.dio.desafio.model;
+
+import br.com.dio.desafio.enums.TipoConta;
+import lombok.Data;
+import java.util.ArrayList;
+import java.util.List;
+
+@Data
+public abstract class Conta {
+    private static int SEQUENCIAL = 1;
+
+    protected int numero;
+    protected double saldo;
+    protected Cliente titular;
+    protected TipoConta tipoConta;
+    protected List<Transacao> historicoTransacoes;
+
+    public Conta(Cliente titular, TipoConta tipoConta) {
+        this.numero = SEQUENCIAL++;
+        this.titular = titular;
+        this.tipoConta = tipoConta;
+        this.historicoTransacoes = new ArrayList<>();
+        this.saldo = 0.0;
+    }
+
+    public void depositar(double valor) {
+        if (valor <= 0) throw new IllegalArgumentException("Valor de depósito deve ser positivo.");
+        this.saldo += valor;
+        registrarTransacao(TipoTransacao.DEPOSITO, valor);
+    }
+
+    public void sacar(double valor) {
+        if (valor <= 0) throw new IllegalArgumentException("Valor de saque deve ser positivo.");
+        if (this.saldo < valor) throw new IllegalArgumentException("Saldo insuficiente.");
+        this.saldo -= valor;
+        registrarTransacao(TipoTransacao.SAQUE, valor);
+    }
+
+    public void transferirPix(Conta destino, double valor) {
+        this.sacar(valor);
+        destino.depositar(valor);
+        registrarTransacao(TipoTransacao.PIX, valor);
+        destino.registrarTransacao(TipoTransacao.PIX_RECEBIDO, valor);
+    }
+
+    protected void registrarTransacao(TipoTransacao tipo, double valor) {
+        this.historicoTransacoes.add(new Transacao(tipo, valor));
+    }
+
+    public abstract void aplicarInvestimento(double valor, TipoInvestimento tipo);
+}
+ContaCorrente.java e ContaPoupanca.java
+java
+// ContaCorrente.java
+package br.com.dio.desafio.model;
+
+import br.com.dio.desafio.enums.TipoConta;
+import br.com.dio.desafio.enums.TipoInvestimento;
+import br.com.dio.desafio.service.CalculadoraInvestimento;
+
+public class ContaCorrente extends Conta {
+    public ContaCorrente(Cliente titular) {
+        super(titular, TipoConta.CORRENTE);
+    }
+
+    @Override
+    public void aplicarInvestimento(double valor, TipoInvestimento tipo) {
+        if (valor > this.saldo) throw new IllegalArgumentException("Saldo insuficiente para investir.");
+        this.sacar(valor);
+        double rendimento = CalculadoraInvestimento.calcular(valor, tipo);
+        System.out.printf("Investimento de R$ %.2f realizado. Rendimento previsto: R$ %.2f%n", valor, rendimento);
+        // Em uma versão avançada, você poderia criar uma entidade Investimento
+    }
+}
+
+// ContaPoupanca.java (similar, mas poderia ter regras de investimento diferentes)
+Transacao.java (Record)
+java
+package br.com.dio.desafio.model;
+
+import java.time.LocalDateTime;
+
+public record Transacao(TipoTransacao tipo, double valor, LocalDateTime dataHora) {
+    public Transacao(TipoTransacao tipo, double valor) {
+        this(tipo, valor, LocalDateTime.now());
+    }
+}
+Enums
+java
+// TipoConta.java
+package br.com.dio.desafio.enums;
+
+public enum TipoConta {
+    CORRENTE, POUPANCA
+}
+
+// TipoTransacao.java
+package br.com.dio.desafio.enums;
+
+public enum TipoTransacao {
+    DEPOSITO, SAQUE, PIX, PIX_RECEBIDO
+}
+
+// TipoInvestimento.java
+package br.com.dio.desafio.enums;
+
+public enum TipoInvestimento {
+    CDB, LCIA, POUPANCA
+}
+CalculadoraInvestimento.java (Service)
+java
+package br.com.dio.desafio.service;
+
+import br.com.dio.desafio.enums.TipoInvestimento;
+
+public class CalculadoraInvestimento {
+    public static double calcular(double valor, TipoInvestimento tipo) {
+        return switch (tipo) {
+            case CDB -> valor * 0.12;
+            case LCIA -> valor * 0.10;
+            case POUPANCA -> valor * 0.05;
+        };
+    }
+}
+ContaRepository.java (Simulação de Persistência)
+java
+package br.com.dio.desafio.repository;
+
+import br.com.dio.desafio.model.Conta;
+import java.util.*;
+
+public class ContaRepository {
+    private final Map<Integer, Conta> contas = new HashMap<>();
+
+    public void salvar(Conta conta) {
+        contas.put(conta.getNumero(), conta);
+    }
+
+    public Optional<Conta> buscarPorNumero(int numero) {
+        return Optional.ofNullable(contas.get(numero));
+    }
+
+    public List<Conta> listarTodas() {
+        return new ArrayList<>(contas.values());
+    }
+}
+Main.java (Menu Interativo)
+java
+package br.com.dio.desafio;
+
+import br.com.dio.desafio.model.*;
+import br.com.dio.desafio.enums.*;
+import br.com.dio.desafio.repository.ContaRepository;
+
+import java.util.Scanner;
+
+public class Main {
+    private static final ContaRepository repository = new ContaRepository();
+    private static final Scanner scanner = new Scanner(System.in);
+
+    public static void main(String[] args) {
+        int opcao;
+        do {
+            System.out.println("\n--- Sistema Bancário DIO ---");
+            System.out.println("1. Criar Conta");
+            System.out.println("2. Depositar");
+            System.out.println("3. Sacar");
+            System.out.println("4. Transferir via PIX");
+            System.out.println("5. Realizar Investimento");
+            System.out.println("6. Ver Extrato");
+            System.out.println("0. Sair");
+            System.out.print("Escolha uma opção: ");
+            opcao = scanner.nextInt();
+            scanner.nextLine(); // consume newline
+
+            switch (opcao) {
+                case 1 -> criarConta();
+                case 2 -> depositar();
+                case 3 -> sacar();
+                case 4 -> transferirPix();
+                case 5 -> investir();
+                case 6 -> extrato();
+                case 0 -> System.out.println("Saindo...");
+                default -> System.out.println("Opção inválida!");
+            }
+        } while (opcao != 0);
+    }
+
+    // Implemente os métodos conforme a regra de negócio, usando o repository e os modelos.
+    private static void criarConta() {
+        // Lógica para criar cliente e conta
+    }
+    // ... outros métodos
+}
+2. Conteúdo do README.md
+markdown
+# 🚀 Desafio DIO: Sistema Bancário com Java e POO
+
+## 📌 Sobre o Projeto
+Este projeto foi desenvolvido como parte do desafio da **Digital Innovation One (DIO)** para consolidar os conceitos de **Programação Orientada a Objetos (POO)**. O sistema simula um banco básico, permitindo a criação de contas, transações (depósito, saque, PIX), investimentos e consulta de extrato, tudo via console interativo.
+
+## 🎯 Objetivos de Aprendizagem
+- Aplicar **abstração**, **encapsulamento**, **herança** e **polimorfismo**.
+- Utilizar **records**, **enums** e **Lombok** para código mais limpo.
+- Simular persistência de dados com **repositórios em memória**.
+- Criar um menu interativo para interação com o usuário.
+- Documentar e versionar o projeto com **Git e GitHub**.
+
+## 🛠️ Tecnologias Utilizadas
+- **Java 17** (ou superior)
+- **Lombok** (para redução de boilerplate)
+- **Git/GitHub** (versionamento e documentação)
+
+## 📁 Estrutura do Projeto
+src/
+├── br/com/dio/desafio/
+│ ├── Main.java
+│ ├── model/
+│ │ ├── Cliente.java
+│ │ ├── Conta.java (abstract)
+│ │ ├── ContaCorrente.java
+│ │ ├── ContaPoupanca.java
+│ │ └── Transacao.java (record)
+│ ├── enums/
+│ │ ├── TipoConta.java
+│ │ ├── TipoTransacao.java
+│ │ └── TipoInvestimento.java
+│ ├── repository/
+│ │ └── ContaRepository.java
+│ └── service/
+│ └── CalculadoraInvestimento.java
+└── resources/
+
+text
+
+## ⚙️ Como Executar
+1. Clone o repositório:
+   ```bash
+   git clone https://github.com/seu-usuario/sistema-bancario-dio.git
+Abra o projeto em sua IDE favorita (IntelliJ, Eclipse, VS Code).
+
+Certifique-se de ter o Lombok configurado.
+
+Execute a classe Main.java.
+
+Interaja com o menu através do console.
+
+🧪 Exemplos de Uso
+Criar Conta
+text
+--- Sistema Bancário DIO ---
+1. Criar Conta
+2. Depositar
+...
+Opção: 1
+Nome do cliente: João Silva
+CPF: 123.456.789-00
+Tipo de conta (1-Corrente, 2-Poupança): 1
+Conta criada com sucesso! Número: 1
+Realizar Transferência PIX
+text
+Opção: 4
+Número da sua conta: 1
+Número da conta destino: 2
+Valor: 150.00
+Transferência via PIX de R$150.00 realizada com sucesso!
+📸 Capturas de Tela
+(Adicione aqui imagens do sistema em execução, organizadas na pasta /images)
+
+https://./images/menu.png
+https://./images/extrato.png
+
+📚 Conceitos Aplicados
+Herança: ContaCorrente e ContaPoupanca herdam de Conta.
+
+Encapsulamento: Atributos privados e métodos públicos controlados.
+
+Polimorfismo: Método aplicarInvestimento se comporta de forma diferente nas subclasses.
+
+Abstração: Classe Conta define o contrato para todas as contas.
+
+Records: Transacao como imutável e simplificado.
+
+Enums: Tipos fixos como TipoConta e TipoTransacao.
+
+Repository Pattern: Simulação de persistência com HashMap.
+
+🧠 Desafios e Aprendizados
+Implementar um menu interativo robusto.
+
+Gerenciar exceções para evitar falhas inesperadas.
+
+Aplicar corretamente os princípios de POO em um cenário real.
+
+🔗 Links Úteis
+Documentação Java
+
+Lombok Project
+
+GitHub Guides
+
+👨‍💻 Autor
+Seu Nome
+LinkedIn | GitHub
+
+✨ Desafio concluído como parte da formação em Java da DIO. Sinta-se à vontade para contribuir ou sugerir melhorias!
+
+text
+
+---
+
+## 3. Instruções Finais para Entrega
+
+1. **Crie o repositório** no GitHub com o nome `sistema-bancario-dio`.
+2. **Adicione o código** seguindo a estrutura sugerida.
+3. **Inclua o `README.md`** com o conteúdo personalizado (substitua os placeholders com seu nome e links).
+4. **Adicione capturas de tela** na pasta `/images` para enriquecer a documentação.
+5. **Envie o link** do repositório na plataforma da DIO.
+
+Boa sorte! Este desafio é uma excelente oportunidade para consolidar seu conhecimento e criar um projeto de destaque no seu portfólio.
+
