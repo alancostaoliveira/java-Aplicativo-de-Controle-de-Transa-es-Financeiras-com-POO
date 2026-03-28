@@ -92,7 +92,7 @@ Além dos requisitos básicos, foram aplicadas as seguintes melhorias técnicas:
 
 ## 👨+💻 Autor
 **Alan Costa de Oliveira**
-[GitHub](https://github.com/alancostaoliveira) | [LinkedIn](https://www.linkedin.com/in/alancostaoliveira)
+[GitHub](https://github.com/alancostaoliveira) | [LinkedIn](https://www.linkedin.com/in/alan-costa-bab784340/)
 
 ---
 ✨ Desafio concluído como parte da formação em Java da DIO.
