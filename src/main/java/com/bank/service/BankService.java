@@ -79,10 +79,9 @@ public class BankService {
             throw new IllegalArgumentException("O valor da transferência deve ser maior que zero.");
         }
 
-        sourceAccount.withdraw(amount);
-        // Override last transaction description for PIX
-        int lastIdx = sourceAccount.getTransactions().size() - 1;
-        sourceAccount.getTransactions().set(lastIdx, new Transaction(
+        // Debit source — use validateAndDeductBalance so we record the PIX transaction type directly
+        sourceAccount.validateAndDeductBalance(amount);
+        sourceAccount.getTransactions().add(new Transaction(
                 TransactionType.TRANSFERENCIA_PIX,
                 amount,
                 String.format("PIX enviado para %s (chave: %s)", destinationAccount.getCustomer().getName(), pixKey),

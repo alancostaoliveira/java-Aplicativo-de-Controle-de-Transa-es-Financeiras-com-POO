@@ -20,18 +20,11 @@ public class SavingsAccount extends Account {
 
     @Override
     public void withdraw(BigDecimal amount) {
-        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("O valor do saque deve ser maior que zero.");
-        }
         if (monthlyWithdrawals >= MAX_MONTHLY_WITHDRAWALS) {
             throw new IllegalStateException(
                 String.format("Limite de %d saques mensais atingido para conta poupança.", MAX_MONTHLY_WITHDRAWALS));
         }
-        if (amount.compareTo(getBalance()) > 0) {
-            throw new IllegalStateException(
-                String.format("Saldo insuficiente. Saldo disponível: R$ %.2f", getBalance()));
-        }
-        setBalance(getBalance().subtract(amount));
+        validateAndDeductBalance(amount);
         monthlyWithdrawals++;
         Transaction transaction = new Transaction(
                 TransactionType.SAQUE,

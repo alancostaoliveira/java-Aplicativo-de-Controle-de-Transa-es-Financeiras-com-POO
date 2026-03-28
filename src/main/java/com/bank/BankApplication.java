@@ -302,11 +302,20 @@ public class BankApplication {
     private static BigDecimal readBigDecimal(String prompt) {
         while (true) {
             System.out.print(prompt);
+            String input = scanner.nextLine().trim();
             try {
-                String input = scanner.nextLine().trim().replace(",", ".");
+                // Handle Brazilian format (e.g. "1.000,50") and standard format (e.g. "1000.50")
+                boolean hasDotAndComma = input.contains(".") && input.contains(",");
+                if (hasDotAndComma) {
+                    // Brazilian thousands + decimal: remove dots then replace comma with dot
+                    input = input.replace(".", "").replace(",", ".");
+                } else {
+                    // Replace comma-as-decimal with dot (e.g. "100,50" → "100.50")
+                    input = input.replace(",", ".");
+                }
                 return new BigDecimal(input);
             } catch (NumberFormatException e) {
-                System.out.println("Por favor, digite um valor monetário válido (ex: 100.00).");
+                System.out.println("Por favor, digite um valor monetário válido (ex: 100.00 ou 100,00).");
             }
         }
     }

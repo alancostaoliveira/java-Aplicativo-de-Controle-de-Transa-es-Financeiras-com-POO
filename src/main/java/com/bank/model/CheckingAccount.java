@@ -23,9 +23,9 @@ public class CheckingAccount extends Account {
     }
 
     @Override
-    public void withdraw(BigDecimal amount) {
+    public void validateAndDeductBalance(BigDecimal amount) {
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("O valor do saque deve ser maior que zero.");
+            throw new IllegalArgumentException("O valor deve ser maior que zero.");
         }
         BigDecimal availableBalance = getBalance().add(overdraftLimit);
         if (amount.compareTo(availableBalance) > 0) {
@@ -33,6 +33,11 @@ public class CheckingAccount extends Account {
                 String.format("Saldo insuficiente. Saldo disponível (com limite): R$ %.2f", availableBalance));
         }
         setBalance(getBalance().subtract(amount));
+    }
+
+    @Override
+    public void withdraw(BigDecimal amount) {
+        validateAndDeductBalance(amount);
         Transaction transaction = new Transaction(
                 TransactionType.SAQUE,
                 amount,

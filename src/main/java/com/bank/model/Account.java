@@ -9,10 +9,13 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Getter
 @Setter
 public abstract class Account {
+    private static final AtomicInteger ACCOUNT_COUNTER = new AtomicInteger(100000);
+
     private String id;
     private String accountNumber;
     private Customer customer;
@@ -30,8 +33,22 @@ public abstract class Account {
     }
 
     private String generateAccountNumber() {
-        int number = (int)(Math.random() * 900000) + 100000;
-        return String.valueOf(number);
+        return String.valueOf(ACCOUNT_COUNTER.getAndIncrement());
+    }
+
+    /**
+     * Validates and deducts amount from balance without recording a transaction.
+     * Intended for use by subclass withdraw implementations and service-layer transfers.
+     */
+    public void validateAndDeductBalance(BigDecimal amount) {
+        if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("O valor deve ser maior que zero.");
+        }
+        if (amount.compareTo(this.balance) > 0) {
+            throw new IllegalStateException(
+                String.format("Saldo insuficiente. Saldo disponível: R$ %.2f", this.balance));
+        }
+        this.balance = this.balance.subtract(amount);
     }
 
     public void deposit(BigDecimal amount) {
