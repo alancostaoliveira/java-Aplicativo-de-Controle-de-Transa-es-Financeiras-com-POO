@@ -21,6 +21,7 @@ src/
 └── br/com/dio/desafio/
     ├── Main.java
     ├── model/
+    │   ├── IConta.java (interface)
     │   ├── Cliente.java
     │   ├── Conta.java (abstract)
     │   ├── ContaCorrente.java
@@ -32,6 +33,9 @@ src/
     │   └── TipoInvestimento.java
     ├── repository/
     │   └── ContaRepository.java
+    ├── exception/
+    │   ├── SaldoInsuficienteException.java
+    │   └── ContaNaoEncontradaException.java
     └── service/
         └── CalculadoraInvestimento.java
 ```
@@ -73,12 +77,20 @@ Transferência realizada!
 - **Herança**: `ContaCorrente` e `ContaPoupanca` herdam de `Conta`.
 - **Encapsulamento**: Atributos protegidos e privados com métodos de acesso controlados.
 - **Polimorfismo**: O método `aplicarInvestimento` é implementado de forma específica em cada tipo de conta.
-- **Abstração**: A classe `Conta` serve como base abstrata para os diferentes tipos de conta bancária.
+- **Abstração**: Uso de Interface (`IConta`) e Classe Abstrata (`Conta`) para definir o contrato do sistema.
 - **Records**: Utilização de `Transacao` como um record para representar dados imutáveis.
 - **Enums**: Padronização de tipos com `TipoConta`, `TipoTransacao` e `TipoInvestimento`.
 - **Repository Pattern**: Centralização da lógica de armazenamento de contas em memória.
 
-## 👨‍💻 Autor
+## 🚀 Melhorias Implementadas (Diferencial)
+Além dos requisitos básicos, foram aplicadas as seguintes melhorias técnicas:
+- **Interface Segregation**: Criação da interface `IConta` para definir o contrato de comportamento.
+- **Exceções Personalizadas**: Implementação de `SaldoInsuficienteException` e `ContaNaoEncontradaException` para um tratamento de erros mais robusto e profissional.
+- **Busca por CPF**: Novo recurso no repositório permitindo localizar contas vinculadas a um CPF específico.
+- **Java Streams**: Uso de Streams no repositório para filtragem eficiente de dados.
+- **Tratamento de Erros**: Bloco `try-catch` no menu principal para capturar erros de negócio separadamente de erros inesperados.
+
+## 👨+💻 Autor
 **Cristiano**
 [GitHub](https://github.com/cristiano)
 

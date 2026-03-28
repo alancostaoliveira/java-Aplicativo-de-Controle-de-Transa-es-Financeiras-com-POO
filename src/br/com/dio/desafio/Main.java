@@ -3,7 +3,9 @@ package br.com.dio.desafio;
 import br.com.dio.desafio.model.*;
 import br.com.dio.desafio.enums.*;
 import br.com.dio.desafio.repository.ContaRepository;
+import br.com.dio.desafio.exception.*;
 
+import java.util.List;
 import java.util.Scanner;
 
 public class Main {
@@ -13,13 +15,14 @@ public class Main {
     public static void main(String[] args) {
         int opcao;
         do {
-            System.out.println("\n--- Sistema Bancário DIO ---");
+            System.out.println("\n--- Sistema Bancário DIO (Versão Melhorada) ---");
             System.out.println("1. Criar Conta");
             System.out.println("2. Depositar");
             System.out.println("3. Sacar");
             System.out.println("4. Transferir via PIX");
             System.out.println("5. Realizar Investimento");
             System.out.println("6. Ver Extrato");
+            System.out.println("7. Buscar Conta por CPF");
             System.out.println("0. Sair");
             System.out.print("Escolha uma opção: ");
             opcao = scanner.nextInt();
@@ -33,11 +36,14 @@ public class Main {
                     case 4 -> transferirPix();
                     case 5 -> investir();
                     case 6 -> extrato();
+                    case 7 -> buscarPorCpf();
                     case 0 -> System.out.println("Saindo...");
                     default -> System.out.println("Opção inválida!");
                 }
+            } catch (SaldoInsuficienteException | ContaNaoEncontradaException e) {
+                System.err.println("ERRO DE NEGÓCIO: " + e.getMessage());
             } catch (Exception e) {
-                System.err.println("Erro: " + e.getMessage());
+                System.err.println("ERRO INESPERADO: " + e.getMessage());
             }
         } while (opcao != 0);
     }
@@ -52,13 +58,7 @@ public class Main {
         System.out.println("Tipo de conta (1-Corrente, 2-Poupança): ");
         int tipo = scanner.nextInt();
         
-        Conta conta;
-        if (tipo == 1) {
-            conta = new ContaCorrente(cliente);
-        } else {
-            conta = new ContaPoupanca(cliente);
-        }
-        
+        Conta conta = (tipo == 1) ? new ContaCorrente(cliente) : new ContaPoupanca(cliente);
         repository.salvar(conta);
         System.out.println("Conta criada com sucesso! Número: " + conta.getNumero());
     }
@@ -69,13 +69,9 @@ public class Main {
         System.out.print("Valor: ");
         double valor = scanner.nextDouble();
         
-        repository.buscarPorNumero(numero).ifPresentOrElse(
-            conta -> {
-                conta.depositar(valor);
-                System.out.println("Depósito realizado!");
-            },
-            () -> System.out.println("Conta não encontrada.")
-        );
+        Conta conta = repository.buscarPorNumero(numero).orElseThrow(() -> new ContaNaoEncontradaException(numero));
+        conta.depositar(valor);
+        System.out.println("Depósito realizado com sucesso!");
     }
 
     private static void sacar() {
@@ -84,13 +80,9 @@ public class Main {
         System.out.print("Valor: ");
         double valor = scanner.nextDouble();
         
-        repository.buscarPorNumero(numero).ifPresentOrElse(
-            conta -> {
-                conta.sacar(valor);
-                System.out.println("Saque realizado!");
-            },
-            () -> System.out.println("Conta não encontrada.")
-        );
+        Conta conta = repository.buscarPorNumero(numero).orElseThrow(() -> new ContaNaoEncontradaException(numero));
+        conta.sacar(valor);
+        System.out.println("Saque realizado com sucesso!");
     }
 
     private static void transferirPix() {
@@ -101,16 +93,11 @@ public class Main {
         System.out.print("Valor: ");
         double valor = scanner.nextDouble();
 
-        repository.buscarPorNumero(origemNum).ifPresentOrElse(
-            origem -> repository.buscarPorNumero(destinoNum).ifPresentOrElse(
-                destino -> {
-                    origem.transferirPix(destino, valor);
-                    System.out.println("Transferência realizada!");
-                },
-                () -> System.out.println("Conta destino não encontrada.")
-            ),
-            () -> System.out.println("Sua conta não foi encontrada.")
-        );
+        Conta origem = repository.buscarPorNumero(origemNum).orElseThrow(() -> new ContaNaoEncontradaException(origemNum));
+        Conta destino = repository.buscarPorNumero(destinoNum).orElseThrow(() -> new ContaNaoEncontradaException(destinoNum));
+        
+        origem.transferirPix(destino, valor);
+        System.out.println("Transferência via PIX de R$ " + valor + " realizada com sucesso!");
     }
 
     private static void investir() {
@@ -127,27 +114,29 @@ public class Main {
             default -> TipoInvestimento.POUPANCA;
         };
 
-        repository.buscarPorNumero(numero).ifPresentOrElse(
-            conta -> conta.aplicarInvestimento(valor, tipo),
-            () -> System.out.println("Conta não encontrada.")
-        );
+        Conta conta = repository.buscarPorNumero(numero).orElseThrow(() -> new ContaNaoEncontradaException(numero));
+        conta.aplicarInvestimento(valor, tipo);
     }
 
     private static void extrato() {
         System.out.print("Número da conta: ");
         int numero = scanner.nextInt();
         
-        repository.buscarPorNumero(numero).ifPresentOrElse(
-            conta -> {
-                System.out.println("\n=== Extrato ===");
-                System.out.println("Titular: " + conta.getTitular().getNome());
-                System.out.println("Saldo: R$ " + conta.getSaldo());
-                System.out.println("Transações:");
-                conta.getHistoricoTransacoes().forEach(t -> 
-                    System.out.printf("%s - %s: R$ %.2f%n", t.dataHora(), t.tipo(), t.valor())
-                );
-            },
-            () -> System.out.println("Conta não encontrada.")
-        );
+        Conta conta = repository.buscarPorNumero(numero).orElseThrow(() -> new ContaNaoEncontradaException(numero));
+        conta.imprimirExtrato();
+    }
+
+    private static void buscarPorCpf() {
+        System.out.print("Digite o CPF para busca: ");
+        String cpf = scanner.next();
+        List<Conta> contas = repository.buscarPorCpf(cpf);
+        
+        if (contas.isEmpty()) {
+            System.out.println("Nenhuma conta vinculada a este CPF.");
+        } else {
+            System.out.println("Contas encontradas:");
+            contas.forEach(c -> System.out.printf("Conta: %d | Tipo: %s | Saldo: R$ %.2f%n", 
+                    c.getNumero(), c.getTipoConta(), c.getSaldo()));
+        }
     }
 }
