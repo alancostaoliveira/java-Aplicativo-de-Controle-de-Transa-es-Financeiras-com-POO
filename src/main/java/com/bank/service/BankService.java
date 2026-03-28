@@ -112,11 +112,12 @@ public class BankService {
     }
 
     public Investment createInvestment(String cpf, String accountNumber, InvestmentType type, BigDecimal amount, int daysToMaturity) {
-        Customer customer = findCustomerByCpfOrThrow(cpf);
+        findCustomerByCpfOrThrow(cpf);
         Account account = findAccountOrThrow(accountNumber);
         if (!account.getCustomer().getCpf().equals(cpf)) {
             throw new IllegalArgumentException("A conta não pertence a este cliente.");
         }
+        Customer customer = account.getCustomer();
         if (amount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new IllegalArgumentException("O valor do investimento deve ser maior que zero.");
         }
